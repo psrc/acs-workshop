@@ -14,7 +14,7 @@ ev <- TRUE
 
 Install the required package by
 ```{r eval=FALSE}
-install.packages(acs, dependencies = TRUE)
+install.packages(acs)
 ```
 
 Load into the namespace:
@@ -28,7 +28,7 @@ Obtain Census API key from [here](http://api.census.gov/data/key_signup.html). I
 api.key.install("1596fcec45b7994ead5cd5d62a6542131df257f6")
 ```
 
-# Loading Data
+# Loading ACS Data
 
 * Lookup geography and ACS table:
 
@@ -45,7 +45,7 @@ kitsap <- geo.make(state=53, county=35, tract="*", check = TRUE)
 
 * Lookup ASC table:
 
-    ```{r eval=ev}
+    ```{r eval=ev, echo=FALSE}
 acs.lookup(2015, table.name="Total Population", case.sensitive = FALSE)
 ```
 
@@ -58,6 +58,8 @@ dim(popkits)
 acs.colnames(popkits) <- c("Total", "Owner", "Renter")
 head(popkits)
 ```
+
+# Manipulating and Visualizing ACS Data
 
 * Sum and Transformations:
 
@@ -76,3 +78,151 @@ plot(popkits[1,])
 plot(popkits[1,1])
 ```
 
+* Converting to R matrices 
+
+    Decompose into estimates and standard errors:
+    
+    ```{r eval=ev}
+popest <- estimate(popkits)
+head(popest)
+class(popest)
+popse <- standard.error(popkits)
+head(popse)
+```
+
+* View with standard R graphics:
+
+    ```{r eval=ev}
+plot(popest[,1], popse[,1])
+plot(popest[,2], popest[,3])
+hist(log(popest[,1]))
+```
+
+* Save into a file
+    * Estimates only:
+    
+        ```{r eval=FALSE}
+write.csv(popest, file="population_by_tenure.csv")
+```
+
+    * Including 95% confidence intervals:
+<!--qnorm(1-(1-0.90)/2)-->
+
+        ```{r eval=FALSE}
+output <- matrix(paste0(popest, " (", 1.96*popse, ")"), nrow=nrow(popest))
+head(output)
+output <- matrix(paste0(popest, " (", round(1.96*popse, 2), ")"), nrow=nrow(popest),
+                dimnames=dimnames(popest))
+head(output)
+write.csv(output, file="population_by_tenure_with_ci.csv")
+```
+    
+    
+# Manipulating R matrices and data frames
+
+* Change rownames
+
+    ```{r eval=ev}
+tract.splits <- strsplit(rownames(popest), ", ")
+head(tract.splits)
+tract.splits <- sapply(tract.splits, "[[", 1)
+tracts <- gsub("Census Tract ", "", tract.splits)
+rownames(popest) <- tracts
+rownames(popse) <- tracts
+head(popest)
+```
+
+* Add ratio as a column
+
+    ```{r eval=ev}
+popest <- cbind(popest, estimate(ratio))
+popse <- cbind(popse, standard.error(ratio))
+head(popest)
+```
+
+* Add sum and average as last row
+
+    ```{r eval=ev}
+sums <- apply(popest[,1:3], 2, sum)
+med <- median(popest[,'ratio'], na.rm=TRUE)
+popest <- rbind(popest, c(sums, med))
+popest <- round(popest,3)
+colnames(popest)[ncol(popest)] <- "Renter/Owner"
+head(popest)
+```
+
+* Remove Inf and NaNs
+
+    ```{r eval=ev}
+popest[is.infinite(popest) | is.na(popest)] <- 0
+tail(popest)
+```
+
+* Save into a file
+    * Estimates only:
+    
+        ```{r eval=FALSE}
+write.csv(popest, file="population_by_tenure_nicer.csv")
+```
+
+    * Tracts as a column:
+    
+        ```{r eval=FALSE}
+output <- cbind(rownames(popest), as.data.frame(popest)
+colnames(output)[1] <- "Tract ID"
+write.csv(output, file="population_final.csv", row.names=FALSE)
+write.table(output, file="population_final.txt", row.names=FALSE, sep="\t")
+```
+
+# Functions
+
+* Create a function to run the above steps for different county and different year. 
+    * Store the code below into a new file:
+
+        ```{r eval=ev}
+popbytenure <- function(county, year = 2015, file.prefix = "population_by_tenure") {
+    # create geography and load data
+    geo <- geo.make(state = 53, county = county, tract = "*")
+    pop <- acs.fetch(endyear = year, geography = geo, table.number = "B25008")
+    acs.colnames(pop) <- c("Total", "Owner", "Renter")
+    
+    # create ratio
+    ratio <- divide.acs(pop[,'Renter'], pop[,'Owner'])
+    acs.colnames(ratio) <- 'ratio'
+    
+    # extract tract ids
+    popest <- estimate(pop)
+    tract.splits <- strsplit(rownames(popest), ", ")
+    tract.splits <- sapply(tract.splits, "[[", 1)
+    tracts <- gsub("Census Tract ", "", tract.splits)
+    rownames(popest) <- tracts
+    
+    # combine pop and ratio, compute sum and median
+    popest <- cbind(popest, estimate(ratio))
+    sums <- apply(popest[,1:3], 2, sum)
+    med <- median(popest[,'ratio'], na.rm=TRUE)
+    popest <- round(rbind(popest, c(sums, med)), 3)
+    
+    # remove inf and NaN
+    popest[is.infinite(popest) | is.na(popest)] <- 0
+    
+    # save
+    output <- cbind(rownames(popest), as.data.frame(popest))
+    colnames(output)[1] <- "Tract ID"
+    file.name <- paste0(file.prefix, "_", year, "_", county, ".csv")
+    write.csv(output, file=file.name, row.names=FALSE)
+    cat("\nFile", file.name)
+    return(nrow(output))
+}
+```
+
+    * Create a loop that calls the above function with different values of the arguments:
+    
+        ```{r eval=FALSE}
+for(year in c(2014, 2015)) {
+    for (county in c(33, 53, 35, 61)) {
+        nrec <- popbytenure(county, year=year)
+        cat(" #tracts: ", nrec)
+    }
+}
+```
