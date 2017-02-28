@@ -14,7 +14,7 @@ ev <- TRUE
 
 Install the required package by
 ```{r eval=FALSE}
-install.packages(acs)
+install.packages(c("acs", "ggplot2"))
 ```
 
 Load into the namespace:
@@ -32,50 +32,78 @@ api.key.install("1596fcec45b7994ead5cd5d62a6542131df257f6")
 
 * Lookup geography and ACS table:
 
-    ```{r eval=ev}
-geo.lookup(state="WA", county="King", county.subdivision = "Seattle")
+    ```{r eval=ev, echo=FALSE}
+geo.lookup(state="WA", county="*")
 geo.lookup(state="WA", county="Ki")
+geo.lookup(state="WA", county="King", county.subdivision = "Seattle")
+geo.lookup(state="WA", county="King", county.subdivision = "*")
 ```
 
 * Create a geography:
 
     ```{r eval=ev}
-kitsap <- geo.make(state=53, county=35, tract="*", check = TRUE)
+geo <- geo.make(state=53, county=35, tract="*", check = TRUE)
+geo <- geo.make(state=53, county=c(33, 35, 53, 61), check=TRUE)
 ```
 
 * Lookup ASC table:
 
     ```{r eval=ev, echo=FALSE}
-acs.lookup(2015, table.name="Total Population", case.sensitive = FALSE)
+acs.lookup(2015, span = 1, table.name = c("Income", "Poverty"), case.sensitive = FALSE)
+acs.lookup(2015, span = 1, table.number = "B17002")
 ```
 
 * Loading data:
 
     ```{r eval=ev}
-popkits <- acs.fetch(endyear = 2015, geography = kitsap, table.number = "B25008") 
-head(popkits)
-dim(popkits)
-acs.colnames(popkits) <- c("Total", "Owner", "Renter")
-head(popkits)
+dataset <- acs.fetch(endyear = 2015, span = 1, geography = geo, table.number = "B17002") 
+dim(dataset)
+head(dataset)
+dataset <- acs.fetch(endyear = 2015, span = 1, geography = geo, table.number = "B17002", 
+                     col.names="pretty") 
+dataset
+```
+
+* Change column names
+
+   ```{r eval=ev}
+acs.colnames(dataset)
+acs.colnames(dataset) <- gsub("Ratio of Income to Poverty Level in the Past 12 Months: ", "", acs.colnames(dataset))
+dataset
 ```
 
 # Manipulating and Visualizing ACS Data
 
-* Sum and Transformations:
+* Various mathematic operations are defined on asc datasets. E.g create a dataset of shares:
 
     ```{r eval=ev}
-sum(popkits)
-ratio <- divide.acs(popkits[,'Renter'], popkits[,'Owner'])
-head(ratio)
-acs.colnames(ratio) <- 'ratio'
+shares <- divide.acs(dataset, dataset[,rep(1, ncol(dataset))])*100
+acs.colnames(shares) <- acs.colnames(dataset)
+```
+
+* Sums over columns, rows or individual cells:
+
+    ```{r eval=ev}
+apply(dataset, 1, sum)
+apply(dataset, 2, sum)
+dataset[,2] + dataset[,3] + dataset[,4]
+dataset[2,2] + dataset[3,2]
 ```
 
 * Visualization:
 
     ```{r eval=ev}
-plot(ratio)
-plot(popkits[1,])
-plot(popkits[1,1])
+plot(shares)
+plot(shares[,2:ncol(shares)])
+plot(dataset[,2:7], by = "acs.colnames", 
+     labels = c("King", "Kitsap", "Pierce", "Sno"))
+plot(sum(dataset[,1]))
+```
+
+* Adding rows/columns. Add a row of sums:
+
+    ```{r eval=ev}
+data.wsum <- rbind(dataset, apply(dataset, 1, sum))
 ```
 
 * Converting to R matrices 
@@ -83,33 +111,59 @@ plot(popkits[1,1])
     Decompose into estimates and standard errors:
     
     ```{r eval=ev}
-popest <- estimate(popkits)
-head(popest)
-class(popest)
-popse <- standard.error(popkits)
-head(popse)
+est <- estimate(data.wsum)
+est
+class(est)
+se <- standard.error(data.wsum)
+se
+rownames(est) <- rownames(se) <- gsub(" County, Washington", "", rownames(est))
+shest <- estimate(shares)
+shse <- standard.error(shares)
+rownames(shest) <- rownames(shse) <- rownames(est)[1:4]
 ```
 
 * View with standard R graphics:
 
     ```{r eval=ev}
-plot(popest[,1], popse[,1])
-plot(popest[,2], popest[,3])
-hist(log(popest[,1]))
+plot(est[,1], se[,1])
+plot(est[2,2:ncol(est)], est[3,2:ncol(est)])
+hist(est[5,2:ncol(est)])
+```
+
+* Fancy plots via `ggplot2`.
+    * by variable:
+    
+        ```{r eval=ev}
+library(ggplot2)
+df <- melt(shest[,2:ncol(shest)])
+head(df)
+colnames(df)[1:2] <- c("County", "Variable")
+g1 <- ggplot(df, aes(Variable, fill=County, weight=value)) + geom_bar(position="dodge") + 
+  ylab("") + xlab("")
+print(g1)
+```
+
+    * by county:
+    
+        ```{r eval=ev}
+g2 <- ggplot(df, aes(County, fill=Variable, weight=value)) + geom_bar(position="dodge") + 
+  ylab("") + xlab("")
+print(g2)
 ```
 
 * Save into a file
     * Estimates only:
     
         ```{r eval=FALSE}
-write.csv(popest, file="population_by_tenure.csv")
+write.csv(est, file="population_by_income.csv")
+write.csv(t(est), file="population_by_income_transposed.csv")
 ```
 
     * Including 95% confidence intervals:
 <!--qnorm(1-(1-0.90)/2)-->
 
         ```{r eval=FALSE}
-output <- matrix(paste0(popest, " (", 1.96*popse, ")"), nrow=nrow(popest))
+output <- matrix(paste0(est, " (", 1.96*se, ")"), nrow=nrow(est))
 head(output)
 output <- matrix(paste0(popest, " (", round(1.96*popse, 2), ")"), nrow=nrow(popest),
                 dimnames=dimnames(popest))
