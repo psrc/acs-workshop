@@ -58,7 +58,7 @@ acs.lookup(2015, span = 1, table.number = "B17002")
     ```{r eval=ev}
 dataset <- acs.fetch(endyear = 2015, span = 1, geography = geo, table.number = "B17002") 
 dim(dataset)
-head(dataset)
+dataset
 dataset <- acs.fetch(endyear = 2015, span = 1, geography = geo, table.number = "B17002", 
                      col.names="pretty") 
 dataset
@@ -66,7 +66,7 @@ dataset
 
 * Change column names
 
-   ```{r eval=ev}
+    ```{r eval=ev}
 acs.colnames(dataset)
 acs.colnames(dataset) <- gsub("Ratio of Income to Poverty Level in the Past 12 Months: ", "", acs.colnames(dataset))
 dataset
@@ -135,6 +135,7 @@ hist(est[5,2:ncol(est)])
     
         ```{r eval=ev}
 library(ggplot2)
+library(reshape2)
 df <- melt(shest[,2:ncol(shest)])
 head(df)
 colnames(df)[1:2] <- c("County", "Variable")
@@ -160,113 +161,59 @@ write.csv(t(est), file="population_by_income_transposed.csv")
 ```
 
     * Including 95% confidence intervals:
-<!--qnorm(1-(1-0.90)/2)-->
+<!--90%: qnorm(1-(1-0.90)/2)-->
 
         ```{r eval=FALSE}
-output <- matrix(paste0(est, " (", 1.96*se, ")"), nrow=nrow(est))
-head(output)
-output <- matrix(paste0(popest, " (", round(1.96*popse, 2), ")"), nrow=nrow(popest),
-                dimnames=dimnames(popest))
-head(output)
-write.csv(output, file="population_by_tenure_with_ci.csv")
-```
-    
-    
-# Manipulating R matrices and data frames
-
-* Change rownames
-
-    ```{r eval=ev}
-tract.splits <- strsplit(rownames(popest), ", ")
-head(tract.splits)
-tract.splits <- sapply(tract.splits, "[[", 1)
-tracts <- gsub("Census Tract ", "", tract.splits)
-rownames(popest) <- tracts
-rownames(popse) <- tracts
-head(popest)
+out <- matrix(NA, ncol=ncol(est)*2, nrow=nrow(est))
+colidx <- seq(1, ncol(out), by=2)
+out[, colidx] <- est
+out[, colidx+1] <- round(1.96*se, 2)
+rownames(out) <- rownames(est)
+coln <- rep(colnames(est), each=2)
+coln[colidx+1] <- paste(coln[colidx+1], "(MoE)")
+colnames(out) <- coln
+write.csv(out, file="population_by_income_inclMoE.csv")
 ```
 
-* Add ratio as a column
-
-    ```{r eval=ev}
-popest <- cbind(popest, estimate(ratio))
-popse <- cbind(popse, standard.error(ratio))
-head(popest)
-```
-
-* Add sum and average as last row
-
-    ```{r eval=ev}
-sums <- apply(popest[,1:3], 2, sum)
-med <- median(popest[,'ratio'], na.rm=TRUE)
-popest <- rbind(popest, c(sums, med))
-popest <- round(popest,3)
-colnames(popest)[ncol(popest)] <- "Renter/Owner"
-head(popest)
-```
-
-* Remove Inf and NaNs
-
-    ```{r eval=ev}
-popest[is.infinite(popest) | is.na(popest)] <- 0
-tail(popest)
-```
-
-* Save into a file
-    * Estimates only:
-    
-        ```{r eval=FALSE}
-write.csv(popest, file="population_by_tenure_nicer.csv")
-```
-
-    * Tracts as a column:
-    
-        ```{r eval=FALSE}
-output <- cbind(rownames(popest), as.data.frame(popest)
-colnames(output)[1] <- "Tract ID"
-write.csv(output, file="population_final.csv", row.names=FALSE)
-write.table(output, file="population_final.txt", row.names=FALSE, sep="\t")
-```
 
 # Functions
+* Write a function that combines estimates and margin of errors (store the code below into a new file):
 
-* Create a function to run the above steps for different county and different year. 
+        ```{r eval=ev}
+create.combined.matrix <- function(est, moe, decimals=2) {
+    out <- matrix(NA, ncol=ncol(est)*2, nrow=nrow(est))
+    colidx <- seq(1, ncol(out), by=2)
+    out[, colidx] <- est
+    out[, colidx+1] <- round(moe, decimals)
+    rownames(out) <- rownames(est)
+    coln <- rep(colnames(est), each=2)
+    coln[colidx+1] <- paste(coln[colidx+1], "(MoE)")
+    colnames(out) <- coln
+    return(out)
+}
+```
+
+* Create a function to run the above steps for different tables and different year. 
     * Store the code below into a new file:
 
         ```{r eval=ev}
-popbytenure <- function(county, year = 2015, file.prefix = "population_by_tenure") {
+popbyincome <- function(table, year = 2015) {
     # create geography and load data
-    geo <- geo.make(state = 53, county = county, tract = "*")
-    pop <- acs.fetch(endyear = year, geography = geo, table.number = "B25008")
-    acs.colnames(pop) <- c("Total", "Owner", "Renter")
-    
-    # create ratio
-    ratio <- divide.acs(pop[,'Renter'], pop[,'Owner'])
-    acs.colnames(ratio) <- 'ratio'
-    
-    # extract tract ids
-    popest <- estimate(pop)
-    tract.splits <- strsplit(rownames(popest), ", ")
-    tract.splits <- sapply(tract.splits, "[[", 1)
-    tracts <- gsub("Census Tract ", "", tract.splits)
-    rownames(popest) <- tracts
-    
-    # combine pop and ratio, compute sum and median
-    popest <- cbind(popest, estimate(ratio))
-    sums <- apply(popest[,1:3], 2, sum)
-    med <- median(popest[,'ratio'], na.rm=TRUE)
-    popest <- round(rbind(popest, c(sums, med)), 3)
-    
-    # remove inf and NaN
-    popest[is.infinite(popest) | is.na(popest)] <- 0
-    
-    # save
-    output <- cbind(rownames(popest), as.data.frame(popest))
-    colnames(output)[1] <- "Tract ID"
-    file.name <- paste0(file.prefix, "_", year, "_", county, ".csv")
-    write.csv(output, file=file.name, row.names=FALSE)
-    cat("\nFile", file.name)
-    return(nrow(output))
+    geo <- geo.make(state = 53, county = c(33, 35, 53, 61))
+    dataset <- acs.fetch(endyear = year, geography = geo, table.number = table)
+    # shorten column names
+    acs.colnames(dataset) <- gsub("Ratio of Income to Poverty Level in the Past 12 Months: ", "", 
+                                    acs.colnames(dataset))
+    # add row of sums
+    data.wsum <- rbind(dataset, apply(dataset, 1, sum))
+    # extract estimates & MoE
+    est <- estimate(data.wsum)
+    se <- standard.error(data.wsum)
+    # shorten row names
+    rownames(est) <- rownames(se) <- gsub(" County, Washington", "", rownames(est))
+    # combine & write into file
+    result <- create.combined.matrix(est, 1.96*se)
+    write.csv(result, file=paste0("population_by_income_", table, ".csv"))
 }
 ```
 
@@ -274,9 +221,8 @@ popbytenure <- function(county, year = 2015, file.prefix = "population_by_tenure
     
         ```{r eval=FALSE}
 for(year in c(2014, 2015)) {
-    for (county in c(33, 53, 35, 61)) {
-        nrec <- popbytenure(county, year=year)
-        cat(" #tracts: ", nrec)
+    for (tab in c('B17002', 'B17022', 'B17024')) {
+        popbyincome(tab, year=year)
     }
 }
 ```
