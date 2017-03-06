@@ -1,5 +1,5 @@
 ---
-title: "Loading and Manipulating Data in R"
+title: "Loading and Manipulating ACS Data in R"
 output: 
   html_document:
     theme: readable
@@ -7,18 +7,18 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-ev <- TRUE
+ev <- FALSE
 ```
 
 # Setup
 
 Install the required package by
 ```{r eval=FALSE}
-install.packages(c("acs", "ggplot2"))
+install.packages(c("acs", "ggplot2", "readxl", "xlsx"))
 ```
 
 Load into the namespace:
-```{r message=FALSE, warning=FALSE}
+```{r eval=ev, message=FALSE, warning=FALSE}
 library(acs)
 ```
 
@@ -32,7 +32,7 @@ api.key.install("1596fcec45b7994ead5cd5d62a6542131df257f6")
 
 * Lookup geography and ACS table:
 
-    ```{r eval=ev, echo=FALSE}
+    ```{r eval=ev}
 geo.lookup(state="WA", county="*")
 geo.lookup(state="WA", county="Ki")
 geo.lookup(state="WA", county="King", county.subdivision = "Seattle")
@@ -48,7 +48,7 @@ geo <- geo.make(state=53, county=c(33, 35, 53, 61), check=TRUE)
 
 * Lookup ASC table:
 
-    ```{r eval=ev, echo=FALSE}
+    ```{r eval=ev}
 acs.lookup(2015, span = 1, table.name = c("Income", "Poverty"), case.sensitive = FALSE)
 acs.lookup(2015, span = 1, table.number = "B17002")
 ```
@@ -68,7 +68,9 @@ dataset
 
     ```{r eval=ev}
 acs.colnames(dataset)
-acs.colnames(dataset) <- gsub("Ratio of Income to Poverty Level in the Past 12 Months: ", "", acs.colnames(dataset))
+acs.colnames(dataset) <- gsub(
+  "Ratio of Income to Poverty Level in the Past 12 Months: ", "", 
+  acs.colnames(dataset))
 dataset
 ```
 
@@ -95,8 +97,7 @@ dataset[2,2] + dataset[3,2]
     ```{r eval=ev}
 plot(shares)
 plot(shares[,2:ncol(shares)])
-plot(dataset[,2:7], by = "acs.colnames", 
-     labels = c("King", "Kitsap", "Pierce", "Sno"))
+plot(dataset[,2:7], by = "acs.colnames", labels = c("King", "Kitsap", "Pierce", "Sno"))
 plot(sum(dataset[,1]))
 ```
 
@@ -130,7 +131,7 @@ plot(est[2,2:ncol(est)], est[3,2:ncol(est)])
 hist(est[5,2:ncol(est)])
 ```
 
-* Fancy plots via `ggplot2`.
+* Fancy plots via `ggplot2`
     * by variable:
     
         ```{r eval=ev}
@@ -179,7 +180,7 @@ write.csv(out, file="population_by_income_inclMoE.csv")
 # Functions
 * Write a function that combines estimates and margin of errors (store the code below into a new file):
 
-        ```{r eval=ev}
+    ```{r eval=ev}
 create.combined.matrix <- function(est, moe, decimals=2) {
     out <- matrix(NA, ncol=ncol(est)*2, nrow=nrow(est))
     colidx <- seq(1, ncol(out), by=2)
@@ -194,7 +195,7 @@ create.combined.matrix <- function(est, moe, decimals=2) {
 ```
 
 * Create a function to run the above steps for different tables and different year. 
-    * Store the code below into a new file:
+    * Store the code below into a new file (it is a collection of steps from above):
 
         ```{r eval=ev}
 popbyincome <- function(table, year = 2015) {
@@ -202,8 +203,9 @@ popbyincome <- function(table, year = 2015) {
     geo <- geo.make(state = 53, county = c(33, 35, 53, 61))
     dataset <- acs.fetch(endyear = year, geography = geo, table.number = table)
     # shorten column names
-    acs.colnames(dataset) <- gsub("Ratio of Income to Poverty Level in the Past 12 Months: ", "", 
-                                    acs.colnames(dataset))
+    acs.colnames(dataset) <- gsub(
+        "Ratio of Income to Poverty Level in the Past 12 Months: ", "", 
+        acs.colnames(dataset))
     # add row of sums
     data.wsum <- rbind(dataset, apply(dataset, 1, sum))
     # extract estimates & MoE
@@ -226,3 +228,69 @@ for(year in c(2014, 2015)) {
     }
 }
 ```
+
+# Working with Other Data Formats
+
+* Reading ASCII files:
+    * CSV:
+    
+        ```{r eval=ev}
+df <- read.csv("population_by_income.csv")
+head(df)
+df <- read.csv("population_by_income.csv", check.names = FALSE)
+head(df)
+```
+
+    * More generic:
+
+        ```{r eval=ev}
+df <- read.table("population_by_income.csv", check.names = FALSE, 
+                  sep = ",", header = TRUE)
+head(df)
+```
+
+    * File converter:
+  
+        ```{r eval=ev}
+convert <- function(in.file, out.file, from, to, ...) {
+  df <- read.table(in.file, sep=from, ...)
+  write.table(df, file=out.file, sep=to)
+}
+
+convert("population_by_income.csv", "population_by_income.txt", from=",", to="\t", 
+          header = TRUE, check.names = FALSE)
+```
+  
+* Downloading online datasets:
+
+    ```{r eval=FALSE}
+download.file("http://www.ofm.wa.gov/pop/census2010/pl/data/wa_2010_pl94171_city.zip", 
+                "wa2010city.zip")
+file.name <- unzip("wa2010city.zip")
+```
+
+* Reading Excel files:
+
+    ```{r eval=ev}
+library(readxl)
+excel_sheets(file.name)
+df <- read_excel(file.name, sheet="Table1")
+head(df)
+df <- read_excel(file.name, sheet="Table1", skip = 3)
+tail(df)
+# remove last row
+df <- df[-nrow(df),]
+tail(df)
+# make the first column to be rownames
+rownames(df) <- df[,1]
+df <- df[,-1]
+```
+
+* Exporting into Excel files:
+
+    ```{r eval=ev}
+library(xlsx)
+write.xlsx2(df, "mydataset.xlsx", sheetName="mysheet")
+write.xlsx2(t(df), "mydataset.xlsx", sheetName="transposed", append=TRUE)
+```
+
