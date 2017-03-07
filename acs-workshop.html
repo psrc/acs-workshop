@@ -123,7 +123,7 @@ $(document).ready(function () {
 <div id="setup" class="section level1">
 <h1>Setup</h1>
 <p>Install the required packages by</p>
-<pre class="r"><code>install.packages(c(&quot;acs&quot;, &quot;ggplot2&quot;, &quot;readxl&quot;, &quot;xlsx&quot;))</code></pre>
+<pre class="r"><code>install.packages(c(&quot;acs&quot;, &quot;ggplot2&quot;, &quot;openxlsx&quot;))</code></pre>
 <p>For working with ACS data we will use the <strong>acs</strong> package which was developed by Ezra Haber Glenn (MIT), partly as a consulting project for the PSRC. Load into the namespace:</p>
 <pre class="r"><code>library(acs)</code></pre>
 <p>Obtain Census API key from <a href="http://api.census.gov/data/key_signup.html">here</a>. Install the key on your system for all future sessions (replace the key below with your own key):</p>
@@ -304,22 +304,60 @@ convert(&quot;population_by_income.csv&quot;, &quot;population_by_income.txt&quo
             &quot;wa2010city.zip&quot;)
 file.name &lt;- unzip(&quot;wa2010city.zip&quot;)</code></pre></li>
 <li><p>Reading Excel files:</p>
-<pre class="r"><code>library(readxl)
-excel_sheets(file.name)
-df &lt;- read_excel(file.name, sheet=&quot;Table1&quot;)
+<pre class="r"><code>library(openxlsx)
+getSheetNames(file.name)
+df &lt;- read.xlsx(file.name, sheet=&quot;Table1&quot;)
+View(df)
+df &lt;- read.xlsx(file.name, sheet=&quot;Table1&quot;, startRow = 4)
 head(df)
-df &lt;- read_excel(file.name, sheet=&quot;Table1&quot;, skip = 3)
-tail(df)
-# remove last row
-df &lt;- df[-nrow(df),]
-tail(df)
 # make the first column to be rownames
 rownames(df) &lt;- df[,1]
 df &lt;- df[,-1]</code></pre></li>
 <li><p>Exporting into Excel files:</p>
-<pre class="r"><code>library(xlsx)
-write.xlsx2(df, &quot;mydataset.xlsx&quot;, sheetName=&quot;mysheet&quot;)
-write.xlsx2(t(df), &quot;mydataset.xlsx&quot;, sheetName=&quot;transposed&quot;, append=TRUE)</code></pre></li>
+<pre class="r"><code>write.xlsx(df, &quot;mydataset.xlsx&quot;, sheetName=&quot;mysheet&quot;)
+write.xlsx(t(df), &quot;mydataset.xlsx&quot;, sheetName=&quot;transposed&quot;, append=TRUE)</code></pre></li>
+</ul>
+</div>
+<div id="summary-of-common-data-manipulation-tasks" class="section level1">
+<h1>Summary of Common Data Manipulation Tasks</h1>
+<p>Let <code>df</code> be an object of class <code>data.frame</code>.</p>
+<ul>
+<li>Change column names of a data frame: <code>colnames(df) &lt;- c(...)</code></li>
+<li>Change row names of a data frame: <code>rownames(df) &lt;- c(...)</code></li>
+<li>Extract column:
+<ul>
+<li><code>df$my_column</code></li>
+<li><code>df[,&quot;my_column&quot;]</code></li>
+<li><code>df[,colindex]</code></li>
+<li><code>df[, which(colnames(df) == &quot;my_column&quot;)]</code></li>
+</ul></li>
+<li>Extract row:
+<ul>
+<li><code>df[&quot;my_row&quot;]</code></li>
+<li><code>df[rowindex,]</code></li>
+<li><code>df[which(rownames(df) == &quot;my_row&quot;)]</code></li>
+</ul></li>
+<li>Add column: <code>cbind(df, new_column=values)</code></li>
+<li>Add row: <code>rbind(df, values_or_data_frame)</code></li>
+<li>Remove column:
+<ul>
+<li><code>df$my_columns &lt;- NULL</code></li>
+<li><code>df[,-colindex]</code></li>
+<li><code>df[, -which(colnames(df) == &quot;my_column&quot;)]</code></li>
+</ul></li>
+<li>Remove row:
+<ul>
+<li><code>df[-rowindex,]</code></li>
+<li><code>df[-which(rownames(df) == &quot;my_row&quot;)]</code></li>
+</ul></li>
+</ul>
+</div>
+<div id="useful-links" class="section level1">
+<h1>Useful Links</h1>
+<ul>
+<li><a href="http://psrc.github.io/novice-r">2016 Software Carpentry R Workshop</a></li>
+<li><a href="http://mailman.mit.edu/mailman/listinfo/acs-r">acs-r mailing list</a></li>
+<li><a href="http://eglenn.scripts.mit.edu/citystate/2013/07/using-acs-r-to-create-chorpleth-maps">example of creating a map with acs data</a></li>
 </ul>
 </div>
 

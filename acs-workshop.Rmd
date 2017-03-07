@@ -300,3 +300,34 @@ write.xlsx(df, "mydataset.xlsx", sheetName="mysheet")
 write.xlsx(t(df), "mydataset.xlsx", sheetName="transposed", append=TRUE)
 ```
 
+# Summary of Common Data Manipulation Tasks
+
+Let ``df`` be an object of class ``data.frame``.
+
+  * Change column names of a data frame: ``colnames(df) <- c(...)``
+  * Change row names of a data frame: ``rownames(df) <- c(...)``
+  * Extract column: 
+    * ``df$my_column``
+    * ``df[,"my_column"]``
+    * ``df[,colindex]``
+    * ``df[, which(colnames(df) == "my_column")]``
+  * Extract row:
+    * ``df["my_row"]``
+    * ``df[rowindex,]``
+    * ``df[which(rownames(df) == "my_row")]``
+  * Add column: ``cbind(df, new_column=values)``
+  * Add row: ``rbind(df, values_or_data_frame)``
+  * Remove column:
+    * ``df$my_columns <- NULL``
+    * ``df[,-colindex]``
+    * ``df[, -which(colnames(df) == "my_column")]``
+  * Remove row:
+    * ``df[-rowindex,]``
+    * ``df[-which(rownames(df) == "my_row")]``
+
+# Useful Links
+  * [2016 Software Carpentry R Workshop](http://psrc.github.io/novice-r)
+  * [acs-r mailing list](http://mailman.mit.edu/mailman/listinfo/acs-r)
+  * [example of creating a map with acs data](http://eglenn.scripts.mit.edu/citystate/2013/07/using-acs-r-to-create-chorpleth-maps)
+  
+
