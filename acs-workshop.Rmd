@@ -56,6 +56,9 @@ geo <- geo.make(state=53, county=35, tract="*", check = TRUE)
 geo <- geo.make(state=53, county=c(33, 35, 53, 61), check=TRUE)
 ```
 
+    See [this tutorial](http://dusp.mit.edu/sites/dusp.mit.edu/files/attachments/publications/working_with_acs_R_v_2.0.pdf)
+    for details on creating advanced  geographies.
+    
 * Lookup ACS table. Say, we are looking for a table of the ratio of income to poverty level:
     
     ```{r eval=ev}
@@ -86,7 +89,7 @@ dataset
 
 # Manipulating and Visualizing ACS Data
 
-* Various mathematic operations are defined on acs datasets. For example, to create a dataset of shares, do:
+* Various mathematical operations are defined on acs datasets. For example, to create a dataset of shares, do:
 
     ```{r eval=ev}
 shares <- divide.acs(dataset, dataset[,rep(1, ncol(dataset))])*100

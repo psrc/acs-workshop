@@ -145,7 +145,8 @@ geo.lookup(state=&quot;WA&quot;, county=&quot;King&quot;, county.subdivision = &
 <pre class="r"><code># geography of all tracts in Kitsap
 geo &lt;- geo.make(state=53, county=35, tract=&quot;*&quot;, check = TRUE)
 # geography of four counties
-geo &lt;- geo.make(state=53, county=c(33, 35, 53, 61), check=TRUE)</code></pre></li>
+geo &lt;- geo.make(state=53, county=c(33, 35, 53, 61), check=TRUE)</code></pre>
+<p>See <a href="http://dusp.mit.edu/sites/dusp.mit.edu/files/attachments/publications/working_with_acs_R_v_2.0.pdf">this tutorial</a> for details on creating advanced geographies.</p></li>
 <li><p>Lookup ACS table. Say, we are looking for a table of the ratio of income to poverty level:</p>
 <pre class="r"><code>acs.lookup(2015, span = 1, table.name = c(&quot;Income&quot;, &quot;Poverty&quot;), case.sensitive = FALSE)
 acs.lookup(2015, span = 1, table.number = &quot;B17002&quot;)</code></pre></li>
@@ -167,7 +168,7 @@ dataset</code></pre></li>
 <div id="manipulating-and-visualizing-acs-data" class="section level1">
 <h1>Manipulating and Visualizing ACS Data</h1>
 <ul>
-<li><p>Various mathematic operations are defined on acs datasets. For example, to create a dataset of shares, do:</p>
+<li><p>Various mathematical operations are defined on acs datasets. For example, to create a dataset of shares, do:</p>
 <pre class="r"><code>shares &lt;- divide.acs(dataset, dataset[,rep(1, ncol(dataset))])*100
 acs.colnames(shares) &lt;- acs.colnames(dataset)</code></pre></li>
 <li><p>Sums over columns, rows or individual cells:</p>
