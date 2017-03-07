@@ -327,12 +327,12 @@ Let ``df`` be an object of class ``data.frame``.
     * ``df[,"my_column"]``
     * ``df[,colindex]``
     * ``df[, which(colnames(df) == "my_column")]``
-    * multiple columns: ``df[, which(colnames(df) %in% c("my_column1", "my_column2")]``
+    * multiple columns: ``df[, which(colnames(df) %in% c("my_column1", "my_column2"))]``
   * Extract row:
-    * ``df["my_row"]``
+    * ``df["my_row",]``
     * ``df[rowindex,]``
-    * ``df[which(rownames(df) == "my_row")]``
-    * multiple rows: ``df[which(rownames(df) %in% c("my_row1", "my_row2")]``
+    * ``df[which(rownames(df) == "my_row"),]``
+    * multiple rows: ``df[which(rownames(df) %in% c("my_row1", "my_row2")),]``
   * Add column: ``cbind(df, new_column=values)``
   * Add row: ``rbind(df, values_or_data_frame)``
   * Remove column:
@@ -341,7 +341,7 @@ Let ``df`` be an object of class ``data.frame``.
     * ``df[, -which(colnames(df) == "my_column")]``
   * Remove row:
     * ``df[-rowindex,]``
-    * ``df[-which(rownames(df) == "my_row")]``
+    * ``df[-which(rownames(df) == "my_row"),]``
 
 # Useful Links
   * [2016 Software Carpentry R Workshop](http://psrc.github.io/novice-r)
