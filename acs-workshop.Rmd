@@ -28,7 +28,7 @@ Obtain Census API key from [here](http://api.census.gov/data/key_signup.html). I
 api.key.install("1596fcec45b7994ead5cd5d62a6542131df257f6")
 ```
 
-Navigate into a working directory, e.g.
+Navigate into an existing working directory, e.g. 
 
 ```{r eval=FALSE}
 getwd()
