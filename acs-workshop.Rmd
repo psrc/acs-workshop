@@ -345,7 +345,8 @@ Let ``df`` be an object of class ``data.frame``.
 
 # Useful Links
   * [2016 Software Carpentry R Workshop](http://psrc.github.io/novice-r)
+  * [Tutorial on the **acs** R package](http://dusp.mit.edu/sites/dusp.mit.edu/files/attachments/publications/working_with_acs_R_v_2.0.pdf)
   * [acs-r mailing list](http://mailman.mit.edu/mailman/listinfo/acs-r)
-  * [example of creating a map with acs data](http://eglenn.scripts.mit.edu/citystate/2013/07/using-acs-r-to-create-chorpleth-maps)
+  * [Example of creating a map with acs data](http://eglenn.scripts.mit.edu/citystate/2013/07/using-acs-r-to-create-chorpleth-maps)
   
 
