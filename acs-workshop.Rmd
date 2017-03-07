@@ -12,17 +12,17 @@ ev <- FALSE
 
 # Setup
 
-Install the required package by
+Install the required packages by
 ```{r eval=FALSE}
-install.packages(c("acs", "ggplot2", "readxl", "xlsx"))
+install.packages(c("acs", "ggplot2", "openxlsx"))
 ```
 
-Load into the namespace:
+For working with ACS data we will use the **acs** package which was developed by Ezra Haber Glenn (MIT), partly as a consulting project for the PSRC. Load into the namespace:
 ```{r eval=ev, message=FALSE, warning=FALSE}
 library(acs)
 ```
 
-Obtain Census API key from [here](http://api.census.gov/data/key_signup.html). Install the key on your system for all future sessions:
+Obtain Census API key from [here](http://api.census.gov/data/key_signup.html). Install the key on your system for all future sessions (replace the key below with your own key):
 
 ```{r eval=FALSE}
 api.key.install("1596fcec45b7994ead5cd5d62a6542131df257f6")
@@ -30,7 +30,9 @@ api.key.install("1596fcec45b7994ead5cd5d62a6542131df257f6")
 
 # Loading ACS Data
 
-* Lookup geography and ACS table:
+First we need to determine for which geography and which dataset we want to obtain data.
+
+* Lookup geography:
 
     ```{r eval=ev}
 geo.lookup(state="WA", county="*")
@@ -42,12 +44,14 @@ geo.lookup(state="WA", county="King", county.subdivision = "*")
 * Create a geography:
 
     ```{r eval=ev}
+# geography of all tracts in Kitsap
 geo <- geo.make(state=53, county=35, tract="*", check = TRUE)
+# geography of four counties
 geo <- geo.make(state=53, county=c(33, 35, 53, 61), check=TRUE)
 ```
 
-* Lookup ASC table:
-
+* Lookup ACS table. Say, we are looking for a table of the ratio of income to poverty level:
+    
     ```{r eval=ev}
 acs.lookup(2015, span = 1, table.name = c("Income", "Poverty"), case.sensitive = FALSE)
 acs.lookup(2015, span = 1, table.number = "B17002")
@@ -64,7 +68,7 @@ dataset <- acs.fetch(endyear = 2015, span = 1, geography = geo, table.number = "
 dataset
 ```
 
-* Change column names
+* Change column names. Remove the table name from column names:
 
     ```{r eval=ev}
 acs.colnames(dataset)
@@ -76,7 +80,7 @@ dataset
 
 # Manipulating and Visualizing ACS Data
 
-* Various mathematic operations are defined on asc datasets. E.g create a dataset of shares:
+* Various mathematic operations are defined on acs datasets. For example, to create a dataset of shares, do:
 
     ```{r eval=ev}
 shares <- divide.acs(dataset, dataset[,rep(1, ncol(dataset))])*100
@@ -96,7 +100,7 @@ dataset[2,2] + dataset[3,2]
 
     ```{r eval=ev}
 plot(shares)
-plot(shares[,2:ncol(shares)])
+plot(shares[,-1])
 plot(dataset[,2:7], by = "acs.colnames", labels = c("King", "Kitsap", "Pierce", "Sno"))
 plot(sum(dataset[,1]))
 ```
@@ -127,8 +131,8 @@ rownames(shest) <- rownames(shse) <- rownames(est)[1:4]
 
     ```{r eval=ev}
 plot(est[,1], se[,1])
-plot(est[2,2:ncol(est)], est[3,2:ncol(est)])
-hist(est[5,2:ncol(est)])
+plot(est[2,-1], est[3,-1])
+hist(est[5,-1])
 ```
 
 * Fancy plots via `ggplot2`
@@ -137,19 +141,19 @@ hist(est[5,2:ncol(est)])
         ```{r eval=ev}
 library(ggplot2)
 library(reshape2)
-df <- melt(shest[,2:ncol(shest)])
+df <- melt(shest[,-1])
 head(df)
 colnames(df)[1:2] <- c("County", "Variable")
-g1 <- ggplot(df, aes(Variable, fill=County, weight=value)) + geom_bar(position="dodge") + 
-  ylab("") + xlab("")
+g1 <- ggplot(df, aes(Variable, fill=County, weight=value)) + 
+  geom_bar(position="dodge") + ylab("") + xlab("")
 print(g1)
 ```
 
     * by county:
     
         ```{r eval=ev}
-g2 <- ggplot(df, aes(County, fill=Variable, weight=value)) + geom_bar(position="dodge") + 
-  ylab("") + xlab("")
+g2 <- ggplot(df, aes(County, fill=Variable, weight=value)) + 
+  geom_bar(position="dodge") + ylab("") + xlab("")
 print(g2)
 ```
 
@@ -194,14 +198,20 @@ create.combined.matrix <- function(est, moe, decimals=2) {
 }
 ```
 
-* Create a function to run the above steps for different tables and different year. 
-    * Store the code below into a new file (it is a collection of steps from above):
+    Source the file and call the function with:
+   
+    ```{r eval=ev}  
+create.combined.matrix(est, 1.64*se)    
+```
+
+* Create a function to run the above steps for different tables and different years. 
+    * Store the code below into the same file as ``create.combined.matrix`` (it is a collection of steps from above):
 
         ```{r eval=ev}
 popbyincome <- function(table, year = 2015) {
     # create geography and load data
     geo <- geo.make(state = 53, county = c(33, 35, 53, 61))
-    dataset <- acs.fetch(endyear = year, geography = geo, table.number = table)
+    dataset <- acs.fetch(endyear = year, span = 1, geography = geo, table.number = table)
     # shorten column names
     acs.colnames(dataset) <- gsub(
         "Ratio of Income to Poverty Level in the Past 12 Months: ", "", 
@@ -261,7 +271,7 @@ convert("population_by_income.csv", "population_by_income.txt", from=",", to="\t
           header = TRUE, check.names = FALSE)
 ```
   
-* Downloading online datasets:
+* Downloading online datasets. For example, download population dataset from the OFM site http://www.ofm.wa.gov:
 
     ```{r eval=FALSE}
 download.file("http://www.ofm.wa.gov/pop/census2010/pl/data/wa_2010_pl94171_city.zip", 
@@ -272,15 +282,12 @@ file.name <- unzip("wa2010city.zip")
 * Reading Excel files:
 
     ```{r eval=ev}
-library(readxl)
-excel_sheets(file.name)
-df <- read_excel(file.name, sheet="Table1")
+library(openxlsx)
+getSheetNames(file.name)
+df <- read.xlsx(file.name, sheet="Table1")
+View(df)
+df <- read.xlsx(file.name, sheet="Table1", startRow = 4)
 head(df)
-df <- read_excel(file.name, sheet="Table1", skip = 3)
-tail(df)
-# remove last row
-df <- df[-nrow(df),]
-tail(df)
 # make the first column to be rownames
 rownames(df) <- df[,1]
 df <- df[,-1]
@@ -289,8 +296,7 @@ df <- df[,-1]
 * Exporting into Excel files:
 
     ```{r eval=ev}
-library(xlsx)
-write.xlsx2(df, "mydataset.xlsx", sheetName="mysheet")
-write.xlsx2(t(df), "mydataset.xlsx", sheetName="transposed", append=TRUE)
+write.xlsx(df, "mydataset.xlsx", sheetName="mysheet")
+write.xlsx(t(df), "mydataset.xlsx", sheetName="transposed", append=TRUE)
 ```
 

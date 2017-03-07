@@ -122,25 +122,28 @@ $(document).ready(function () {
 
 <div id="setup" class="section level1">
 <h1>Setup</h1>
-<p>Install the required package by</p>
+<p>Install the required packages by</p>
 <pre class="r"><code>install.packages(c(&quot;acs&quot;, &quot;ggplot2&quot;, &quot;readxl&quot;, &quot;xlsx&quot;))</code></pre>
-<p>Load into the namespace:</p>
+<p>For working with ACS data we will use the <strong>acs</strong> package which was developed by Ezra Haber Glenn (MIT), partly as a consulting project for the PSRC. Load into the namespace:</p>
 <pre class="r"><code>library(acs)</code></pre>
-<p>Obtain Census API key from <a href="http://api.census.gov/data/key_signup.html">here</a>. Install the key on your system for all future sessions:</p>
+<p>Obtain Census API key from <a href="http://api.census.gov/data/key_signup.html">here</a>. Install the key on your system for all future sessions (replace the key below with your own key):</p>
 <pre class="r"><code>api.key.install(&quot;1596fcec45b7994ead5cd5d62a6542131df257f6&quot;)</code></pre>
 </div>
 <div id="loading-acs-data" class="section level1">
 <h1>Loading ACS Data</h1>
+<p>First we need to determine for which geography and which dataset we want to obtain data.</p>
 <ul>
-<li><p>Lookup geography and ACS table:</p>
+<li><p>Lookup geography:</p>
 <pre class="r"><code>geo.lookup(state=&quot;WA&quot;, county=&quot;*&quot;)
 geo.lookup(state=&quot;WA&quot;, county=&quot;Ki&quot;)
 geo.lookup(state=&quot;WA&quot;, county=&quot;King&quot;, county.subdivision = &quot;Seattle&quot;)
 geo.lookup(state=&quot;WA&quot;, county=&quot;King&quot;, county.subdivision = &quot;*&quot;)</code></pre></li>
 <li><p>Create a geography:</p>
-<pre class="r"><code>geo &lt;- geo.make(state=53, county=35, tract=&quot;*&quot;, check = TRUE)
+<pre class="r"><code># geography of all tracts in Kitsap
+geo &lt;- geo.make(state=53, county=35, tract=&quot;*&quot;, check = TRUE)
+# geography of four counties
 geo &lt;- geo.make(state=53, county=c(33, 35, 53, 61), check=TRUE)</code></pre></li>
-<li><p>Lookup ASC table:</p>
+<li><p>Lookup ACS table. Say, we are looking for a table of the ratio of income to poverty level:</p>
 <pre class="r"><code>acs.lookup(2015, span = 1, table.name = c(&quot;Income&quot;, &quot;Poverty&quot;), case.sensitive = FALSE)
 acs.lookup(2015, span = 1, table.number = &quot;B17002&quot;)</code></pre></li>
 <li><p>Loading data:</p>
@@ -150,7 +153,7 @@ dataset
 dataset &lt;- acs.fetch(endyear = 2015, span = 1, geography = geo, table.number = &quot;B17002&quot;, 
                  col.names=&quot;pretty&quot;) 
 dataset</code></pre></li>
-<li><p>Change column names</p>
+<li><p>Change column names. Remove the table name from column names:</p>
 <pre class="r"><code>acs.colnames(dataset)
 acs.colnames(dataset) &lt;- gsub(
   &quot;Ratio of Income to Poverty Level in the Past 12 Months: &quot;, &quot;&quot;, 
@@ -161,7 +164,7 @@ dataset</code></pre></li>
 <div id="manipulating-and-visualizing-acs-data" class="section level1">
 <h1>Manipulating and Visualizing ACS Data</h1>
 <ul>
-<li><p>Various mathematic operations are defined on asc datasets. E.g create a dataset of shares:</p>
+<li><p>Various mathematic operations are defined on acs datasets. For example, to create a dataset of shares, do:</p>
 <pre class="r"><code>shares &lt;- divide.acs(dataset, dataset[,rep(1, ncol(dataset))])*100
 acs.colnames(shares) &lt;- acs.colnames(dataset)</code></pre></li>
 <li><p>Sums over columns, rows or individual cells:</p>
@@ -171,7 +174,7 @@ dataset[,2] + dataset[,3] + dataset[,4]
 dataset[2,2] + dataset[3,2]</code></pre></li>
 <li><p>Visualization:</p>
 <pre class="r"><code>plot(shares)
-plot(shares[,2:ncol(shares)])
+plot(shares[,-1])
 plot(dataset[,2:7], by = &quot;acs.colnames&quot;, labels = c(&quot;King&quot;, &quot;Kitsap&quot;, &quot;Pierce&quot;, &quot;Sno&quot;))
 plot(sum(dataset[,1]))</code></pre></li>
 <li><p>Adding rows/columns. Add a row of sums:</p>
@@ -189,22 +192,22 @@ shse &lt;- standard.error(shares)
 rownames(shest) &lt;- rownames(shse) &lt;- rownames(est)[1:4]</code></pre></li>
 <li><p>View with standard R graphics:</p>
 <pre class="r"><code>plot(est[,1], se[,1])
-plot(est[2,2:ncol(est)], est[3,2:ncol(est)])
-hist(est[5,2:ncol(est)])</code></pre></li>
+plot(est[2,-1], est[3,-1])
+hist(est[5,-1])</code></pre></li>
 <li>Fancy plots via <code>ggplot2</code>
 <ul>
 <li><p>by variable:</p>
 <pre class="r"><code>library(ggplot2)
 library(reshape2)
-df &lt;- melt(shest[,2:ncol(shest)])
+df &lt;- melt(shest[,-1])
 head(df)
 colnames(df)[1:2] &lt;- c(&quot;County&quot;, &quot;Variable&quot;)
-g1 &lt;- ggplot(df, aes(Variable, fill=County, weight=value)) + geom_bar(position=&quot;dodge&quot;) + 
-  ylab(&quot;&quot;) + xlab(&quot;&quot;)
+g1 &lt;- ggplot(df, aes(Variable, fill=County, weight=value)) + 
+  geom_bar(position=&quot;dodge&quot;) + ylab(&quot;&quot;) + xlab(&quot;&quot;)
 print(g1)</code></pre></li>
 <li><p>by county:</p>
-<pre class="r"><code>g2 &lt;- ggplot(df, aes(County, fill=Variable, weight=value)) + geom_bar(position=&quot;dodge&quot;) + 
-  ylab(&quot;&quot;) + xlab(&quot;&quot;)
+<pre class="r"><code>g2 &lt;- ggplot(df, aes(County, fill=Variable, weight=value)) + 
+  geom_bar(position=&quot;dodge&quot;) + ylab(&quot;&quot;) + xlab(&quot;&quot;)
 print(g2)</code></pre></li>
 </ul></li>
 <li>Save into a file
@@ -239,14 +242,16 @@ coln &lt;- rep(colnames(est), each=2)
 coln[colidx+1] &lt;- paste(coln[colidx+1], &quot;(MoE)&quot;)
 colnames(out) &lt;- coln
 return(out)
-}</code></pre></li>
-<li>Create a function to run the above steps for different tables and different year.
+}</code></pre>
+<p>Source the file and call the function with:</p>
+<pre class="r"><code>create.combined.matrix(est, 1.64*se)    </code></pre></li>
+<li>Create a function to run the above steps for different tables and different years.
 <ul>
-<li><p>Store the code below into a new file (it is a collection of steps from above):</p>
+<li><p>Store the code below into the same file as <code>create.combined.matrix</code> (it is a collection of steps from above):</p>
 <pre class="r"><code>popbyincome &lt;- function(table, year = 2015) {
     # create geography and load data
     geo &lt;- geo.make(state = 53, county = c(33, 35, 53, 61))
-    dataset &lt;- acs.fetch(endyear = year, geography = geo, table.number = table)
+    dataset &lt;- acs.fetch(endyear = year, span = 1, geography = geo, table.number = table)
     # shorten column names
     acs.colnames(dataset) &lt;- gsub(
 &quot;Ratio of Income to Poverty Level in the Past 12 Months: &quot;, &quot;&quot;, 
@@ -294,7 +299,7 @@ head(df)</code></pre></li>
 convert(&quot;population_by_income.csv&quot;, &quot;population_by_income.txt&quot;, from=&quot;,&quot;, to=&quot;\t&quot;, 
   header = TRUE, check.names = FALSE)</code></pre></li>
 </ul></li>
-<li><p>Downloading online datasets:</p>
+<li><p>Downloading online datasets. For example, download population dataset from the OFM site <a href="http://www.ofm.wa.gov" class="uri">http://www.ofm.wa.gov</a>:</p>
 <pre class="r"><code>download.file(&quot;http://www.ofm.wa.gov/pop/census2010/pl/data/wa_2010_pl94171_city.zip&quot;, 
             &quot;wa2010city.zip&quot;)
 file.name &lt;- unzip(&quot;wa2010city.zip&quot;)</code></pre></li>
