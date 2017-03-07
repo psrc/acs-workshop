@@ -28,6 +28,12 @@ Obtain Census API key from [here](http://api.census.gov/data/key_signup.html). I
 api.key.install("1596fcec45b7994ead5cd5d62a6542131df257f6")
 ```
 
+Navigate into a working directory, e.g.
+
+```{r eval=FALSE}
+getwd()
+setwd("../acs-workshop")
+```
 # Loading ACS Data
 
 First we need to determine for which geography and which dataset we want to obtain data.
@@ -296,10 +302,17 @@ df <- df[,-1]
 * Exporting into Excel files:
 
     ```{r eval=ev}
-write.xlsx(df, "mydataset.xlsx", sheetName="mysheet")
-write.xlsx(t(df), "mydataset.xlsx", sheetName="transposed", append=TRUE)
+# one sheet
+write.xlsx(df, "mydataset.xlsx", sheetName="mysheet", rowNames = TRUE)
+# multiple sheets (create a workbook, add sheets and save)
+wb <- createWorkbook()
+writeData(wb, sheet="mysheet", df, rowNames = TRUE)
+writeData(wb, sheet="transposed", t(df), rowNames = TRUE)
+saveWorkbook(wb, "mydataset.xlsx")
 ```
 
+    **Troubleshooting:** Note that on Windows you might run into an error when running the above commands. In such a case, install [Rtools](https://cran.r-project.org/bin/windows/Rtools) (choose to update PATH when asked) and restart RStudio.
+  
 # Summary of Common Data Manipulation Tasks
 
 Let ``df`` be an object of class ``data.frame``.
