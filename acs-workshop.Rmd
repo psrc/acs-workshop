@@ -231,7 +231,7 @@ popbyincome <- function(table, year = 2015) {
     rownames(est) <- rownames(se) <- gsub(" County, Washington", "", rownames(est))
     # combine & write into file
     result <- create.combined.matrix(est, 1.96*se)
-    write.csv(result, file=paste0("population_by_income_", table, ".csv"))
+    write.csv(result, file=paste0("population_by_income_", year, "_", table, ".csv"))
 }
 ```
 

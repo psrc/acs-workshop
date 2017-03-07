@@ -268,7 +268,7 @@ acs.colnames(dataset))
     rownames(est) &lt;- rownames(se) &lt;- gsub(&quot; County, Washington&quot;, &quot;&quot;, rownames(est))
     # combine &amp; write into file
     result &lt;- create.combined.matrix(est, 1.96*se)
-    write.csv(result, file=paste0(&quot;population_by_income_&quot;, table, &quot;.csv&quot;))
+    write.csv(result, file=paste0(&quot;population_by_income_&quot;, year, &quot;_&quot;, table, &quot;.csv&quot;))
 }</code></pre></li>
 <li><p>Create a loop that calls the above function with different values of the arguments:</p>
 <pre class="r"><code>for(year in c(2014, 2015)) {
