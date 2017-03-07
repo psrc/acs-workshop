@@ -306,9 +306,11 @@ df <- df[,-1]
 write.xlsx(df, "mydataset.xlsx", sheetName="mysheet", rowNames = TRUE)
 # multiple sheets (create a workbook, add sheets and save)
 wb <- createWorkbook()
+addWorksheet(wb, "mysheet")
 writeData(wb, sheet="mysheet", df, rowNames = TRUE)
+addWorksheet(wb, "transposed")
 writeData(wb, sheet="transposed", t(df), rowNames = TRUE)
-saveWorkbook(wb, "mydataset.xlsx")
+saveWorkbook(wb, "mydataset.xlsx", overwrite = TRUE)
 ```
 
     **Troubleshooting:** Note that on Windows you might run into an error when running the above commands. In such a case, install [Rtools](https://cran.r-project.org/bin/windows/Rtools) (choose to update PATH when asked) and restart RStudio.
