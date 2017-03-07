@@ -327,15 +327,18 @@ write.xlsx(t(df), &quot;mydataset.xlsx&quot;, sheetName=&quot;transposed&quot;, 
 <li>Extract column:
 <ul>
 <li><code>df$my_column</code></li>
+<li><code>df[[&quot;my_column&quot;]]</code></li>
 <li><code>df[,&quot;my_column&quot;]</code></li>
 <li><code>df[,colindex]</code></li>
 <li><code>df[, which(colnames(df) == &quot;my_column&quot;)]</code></li>
+<li>multiple columns: <code>df[, which(colnames(df) %in% c(&quot;my_column1&quot;, &quot;my_column2&quot;)]</code></li>
 </ul></li>
 <li>Extract row:
 <ul>
 <li><code>df[&quot;my_row&quot;]</code></li>
 <li><code>df[rowindex,]</code></li>
 <li><code>df[which(rownames(df) == &quot;my_row&quot;)]</code></li>
+<li>multiple rows: <code>df[which(rownames(df) %in% c(&quot;my_row1&quot;, &quot;my_row2&quot;)]</code></li>
 </ul></li>
 <li>Add column: <code>cbind(df, new_column=values)</code></li>
 <li>Add row: <code>rbind(df, values_or_data_frame)</code></li>

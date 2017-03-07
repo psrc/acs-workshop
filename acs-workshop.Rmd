@@ -308,13 +308,16 @@ Let ``df`` be an object of class ``data.frame``.
   * Change row names of a data frame: ``rownames(df) <- c(...)``
   * Extract column: 
     * ``df$my_column``
+    * ``df[["my_column"]]``
     * ``df[,"my_column"]``
     * ``df[,colindex]``
     * ``df[, which(colnames(df) == "my_column")]``
+    * multiple columns: ``df[, which(colnames(df) %in% c("my_column1", "my_column2")]``
   * Extract row:
     * ``df["my_row"]``
     * ``df[rowindex,]``
     * ``df[which(rownames(df) == "my_row")]``
+    * multiple rows: ``df[which(rownames(df) %in% c("my_row1", "my_row2")]``
   * Add column: ``cbind(df, new_column=values)``
   * Add row: ``rbind(df, values_or_data_frame)``
   * Remove column:
