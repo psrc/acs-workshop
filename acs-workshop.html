@@ -317,8 +317,13 @@ head(df)
 rownames(df) &lt;- df[,1]
 df &lt;- df[,-1]</code></pre></li>
 <li><p>Exporting into Excel files:</p>
-<pre class="r"><code>write.xlsx(df, &quot;mydataset.xlsx&quot;, sheetName=&quot;mysheet&quot;)
-write.xlsx(t(df), &quot;mydataset.xlsx&quot;, sheetName=&quot;transposed&quot;, append=TRUE)</code></pre>
+<pre class="r"><code># one sheet
+write.xlsx(df, &quot;mydataset.xlsx&quot;, sheetName=&quot;mysheet&quot;, rowNames = TRUE)
+# multiple sheets (create a workbook, add sheets and save)
+wb &lt;- createWorkbook()
+writeData(wb, sheet=&quot;mysheet&quot;, df, rowNames = TRUE)
+writeData(wb, sheet=&quot;transposed&quot;, t(df), rowNames = TRUE)
+saveWorkbook(wb, &quot;mydataset.xlsx&quot;)</code></pre>
 <p><strong>Troubleshooting:</strong> Note that on Windows you might run into an error when running the above commands. In such a case, install <a href="https://cran.r-project.org/bin/windows/Rtools">Rtools</a> (choose to update PATH when asked) and restart RStudio.</p></li>
 </ul>
 </div>
