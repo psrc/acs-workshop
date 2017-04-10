@@ -5,6 +5,10 @@ output:
     theme: readable
 ---
 
+_Hana &#352;ev&#269;&#237;kov&#225;, Christy Lam_
+
+_PSRC, March 7th 2017_
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ev <- FALSE
